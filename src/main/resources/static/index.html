@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FinTrack — Personal Finance</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --surface3: #2a2f47;
+    --border: rgba(255,255,255,0.07);
+    --accent: #f0c040;
+    --accent2: #e8965a;
+    --green: #4ade80;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --purple: #a78bfa;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { font-size:15px; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+  }
+
+  /* ─── AUTH SCREEN ─── */
+  #auth-screen {
+    width:100%; min-height:100vh;
+    display:flex; align-items:center; justify-content:center;
+    background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(240,192,64,0.15), transparent),
+                radial-gradient(ellipse 50% 50% at 80% 80%, rgba(96,165,250,0.08), transparent),
+                var(--bg);
+  }
+  .auth-card {
+    width:100%; max-width:420px;
+    background: var(--surface);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:40px;
+  }
+  .auth-logo { font-family:'Syne',sans-serif; font-size:1.8rem; font-weight:800; color:var(--accent); margin-bottom:6px; }
+  .auth-tagline { color:var(--muted); font-size:.9rem; margin-bottom:32px; }
+  .auth-tabs { display:flex; gap:4px; background:var(--surface2); border-radius:var(--radius-sm); padding:4px; margin-bottom:28px; }
+  .auth-tab { flex:1; padding:8px; text-align:center; border-radius:6px; cursor:pointer; font-size:.9rem; color:var(--muted); transition:.2s; border:none; background:transparent; font-family:inherit; }
+  .auth-tab.active { background:var(--accent); color:#000; font-weight:600; }
+  .form-group { margin-bottom:16px; }
+  .form-group label { display:block; font-size:.82rem; color:var(--muted); margin-bottom:6px; font-weight:500; letter-spacing:.03em; text-transform:uppercase; }
+  .form-control {
+    width:100%; padding:11px 14px;
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:var(--radius-sm); color:var(--text);
+    font-family:inherit; font-size:.95rem;
+    transition: border-color .2s, box-shadow .2s;
+    outline:none;
+  }
+  .form-control:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(240,192,64,0.12); }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .btn-primary {
+    width:100%; padding:13px;
+    background:var(--accent); color:#000;
+    border:none; border-radius:var(--radius-sm);
+    font-family:'Syne',sans-serif; font-size:1rem; font-weight:700;
+    cursor:pointer; transition:.2s;
+    margin-top:8px;
+  }
+  .btn-primary:hover { background:#f5d060; transform:translateY(-1px); }
+  .auth-error { color:var(--red); font-size:.85rem; margin-top:12px; text-align:center; }
+
+  /* ─── APP LAYOUT ─── */
+  #app { display:none; width:100%; }
+  .sidebar {
+    width:240px; flex-shrink:0;
+    background:var(--surface);
+    border-right:1px solid var(--border);
+    display:flex; flex-direction:column;
+    height:100vh; position:sticky; top:0;
+    overflow:hidden;
+  }
+  .sidebar-logo {
+    padding:24px 20px 16px;
+    font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:800;
+    color:var(--accent);
+    border-bottom:1px solid var(--border);
+  }
+  .sidebar-logo span { color:var(--muted); font-size:.75rem; font-weight:400; display:block; font-family:'DM Sans',sans-serif; margin-top:2px; }
+  .sidebar-nav { flex:1; padding:12px 10px; overflow-y:auto; }
+  .nav-section-label { font-size:.7rem; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); padding:12px 10px 4px; }
+  .nav-item {
+    display:flex; align-items:center; gap:10px;
+    padding:10px 12px; border-radius:var(--radius-sm);
+    cursor:pointer; color:var(--muted);
+    font-size:.92rem; font-weight:500;
+    transition:.15s; margin-bottom:2px;
+  }
+  .nav-item:hover { background:var(--surface2); color:var(--text); }
+  .nav-item.active { background:rgba(240,192,64,0.12); color:var(--accent); }
+  .nav-item svg { width:18px; height:18px; flex-shrink:0; }
+  .sidebar-user {
+    padding:16px; border-top:1px solid var(--border);
+    display:flex; align-items:center; gap:10px;
+  }
+  .avatar {
+    width:36px; height:36px; border-radius:50%;
+    background:linear-gradient(135deg, var(--accent), var(--accent2));
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Syne',sans-serif; font-weight:700; color:#000; font-size:.9rem;
+    flex-shrink:0;
+  }
+  .user-info { flex:1; min-width:0; }
+  .user-name { font-size:.88rem; font-weight:600; truncate; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .user-role { font-size:.75rem; color:var(--muted); }
+  .logout-btn { background:none; border:none; color:var(--muted); cursor:pointer; padding:4px; border-radius:4px; }
+  .logout-btn:hover { color:var(--red); }
+
+  /* ─── MAIN CONTENT ─── */
+  .main { flex:1; overflow-y:auto; background:var(--bg); }
+  .page { display:none; padding:28px; max-width:1100px; }
+  .page.active { display:block; }
+  .page-header { margin-bottom:24px; }
+  .page-header h1 { font-family:'Syne',sans-serif; font-size:1.6rem; font-weight:700; }
+  .page-header p { color:var(--muted); font-size:.9rem; margin-top:4px; }
+
+  /* ─── CARDS ─── */
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:24px; }
+  .stat-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:20px;
+    position:relative; overflow:hidden;
+  }
+  .stat-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  }
+  .stat-card.income::before { background:var(--green); }
+  .stat-card.expense::before { background:var(--red); }
+  .stat-card.balance::before { background:var(--accent); }
+  .stat-card.savings::before { background:var(--blue); }
+  .stat-label { font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:600; }
+  .stat-value { font-family:'Syne',sans-serif; font-size:1.7rem; font-weight:700; margin:6px 0 2px; }
+  .stat-value.positive { color:var(--green); }
+  .stat-value.negative { color:var(--red); }
+  .stat-change { font-size:.8rem; color:var(--muted); }
+
+  .card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:22px; margin-bottom:20px;
+  }
+  .card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+  .card-title { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; }
+  .charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+  @media(max-width:700px) { .charts-grid { grid-template-columns:1fr; } }
+  canvas { max-height:250px; }
+
+  /* ─── TABLE ─── */
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; }
+  th { font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:600; padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); }
+  td { padding:12px 12px; font-size:.9rem; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:rgba(255,255,255,0.02); }
+
+  /* ─── BADGES ─── */
+  .badge {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:3px 10px; border-radius:100px; font-size:.76rem; font-weight:600;
+  }
+  .badge-income { background:rgba(74,222,128,0.12); color:var(--green); }
+  .badge-expense { background:rgba(248,113,113,0.12); color:var(--red); }
+  .badge-info { background:rgba(96,165,250,0.12); color:var(--blue); }
+  .badge-warn { background:rgba(240,192,64,0.12); color:var(--accent); }
+
+  /* ─── BUTTONS ─── */
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:var(--radius-sm); font-family:inherit; font-size:.88rem; font-weight:600; cursor:pointer; border:none; transition:.15s; }
+  .btn-sm { padding:5px 12px; font-size:.82rem; }
+  .btn-accent { background:var(--accent); color:#000; }
+  .btn-accent:hover { background:#f5d060; }
+  .btn-ghost { background:var(--surface2); color:var(--text); border:1px solid var(--border); }
+  .btn-ghost:hover { background:var(--surface3); }
+  .btn-danger { background:rgba(248,113,113,0.15); color:var(--red); border:1px solid rgba(248,113,113,0.2); }
+  .btn-danger:hover { background:rgba(248,113,113,0.25); }
+
+  /* ─── PROGRESS BAR ─── */
+  .progress-bar { height:8px; background:var(--surface2); border-radius:100px; overflow:hidden; margin-top:8px; }
+  .progress-fill { height:100%; border-radius:100px; transition:width .6s ease; background:var(--accent); }
+  .progress-fill.over { background:var(--red); }
+
+  /* ─── MODAL ─── */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:100;
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:.2s;
+  }
+  .modal-overlay.open { opacity:1; pointer-events:all; }
+  .modal {
+    background:var(--surface); border:1px solid var(--border); border-radius:20px;
+    padding:28px; width:100%; max-width:500px; max-height:90vh; overflow-y:auto;
+    transform:scale(.95); transition:.2s;
+  }
+  .modal-overlay.open .modal { transform:scale(1); }
+  .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+  .modal-title { font-family:'Syne',sans-serif; font-size:1.15rem; font-weight:700; }
+  .modal-close { background:none; border:none; color:var(--muted); cursor:pointer; font-size:1.4rem; line-height:1; }
+  .modal-close:hover { color:var(--text); }
+  .modal-footer { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+
+  /* ─── FORUM ─── */
+  .forum-post {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:20px; margin-bottom:16px;
+  }
+  .post-meta { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .post-avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.8rem; color:#000; flex-shrink:0; }
+  .post-author { font-weight:600; font-size:.9rem; }
+  .post-time { color:var(--muted); font-size:.8rem; }
+  .post-title { font-family:'Syne',sans-serif; font-weight:600; font-size:1rem; margin-bottom:8px; }
+  .post-content { color:var(--muted); font-size:.9rem; line-height:1.6; }
+  .post-actions { display:flex; gap:12px; margin-top:14px; }
+  .post-action { display:flex; align-items:center; gap:5px; color:var(--muted); font-size:.85rem; cursor:pointer; padding:5px 10px; border-radius:var(--radius-sm); border:none; background:transparent; transition:.15s; font-family:inherit; }
+  .post-action:hover { background:var(--surface2); color:var(--text); }
+  .comments-section { padding-left:16px; border-left:2px solid var(--border); margin-top:16px; }
+  .comment { padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+  .comment:last-child { border-bottom:none; }
+
+  /* ─── TOAST ─── */
+  #toast-container { position:fixed; bottom:24px; right:24px; z-index:999; display:flex; flex-direction:column; gap:8px; }
+  .toast {
+    padding:12px 18px; border-radius:var(--radius-sm); font-size:.88rem;
+    font-weight:500; min-width:240px; max-width:360px;
+    animation: slideIn .3s ease;
+    display:flex; align-items:center; gap:8px;
+  }
+  .toast-success { background:#166534; border:1px solid #4ade80; color:#bbf7d0; }
+  .toast-error { background:#7f1d1d; border:1px solid #f87171; color:#fecaca; }
+  .toast-info { background:#1e3a5f; border:1px solid #60a5fa; color:#bfdbfe; }
+  @keyframes slideIn { from { transform:translateX(120%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+
+  .empty-state { text-align:center; padding:48px 24px; color:var(--muted); }
+  .empty-state svg { opacity:.3; margin-bottom:12px; }
+  .empty-state p { font-size:.95rem; }
+
+  select.form-control option { background:var(--surface2); }
+  .filter-bar { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+
+  /* Goal card */
+  .goals-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
+  .goal-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+  .goal-name { font-family:'Syne',sans-serif; font-weight:700; font-size:1rem; margin-bottom:4px; }
+  .goal-amounts { display:flex; justify-content:space-between; font-size:.85rem; color:var(--muted); margin-top:10px; }
+  .goal-actions { display:flex; gap:8px; margin-top:14px; }
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">FinTrack</div>
+    <div class="auth-tagline">Your complete personal finance dashboard</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchAuthTab('register')">Create Account</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="login-form">
+      <div class="form-group">
+        <label>Email</label>
+        <input class="form-control" type="email" id="login-email" value="demo@finance.com" placeholder="your@email.com"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input class="form-control" type="password" id="login-password" value="demo123" placeholder="••••••••"/>
+      </div>
+      <button class="btn-primary" onclick="doLogin()">Sign In →</button>
+      <div id="login-error" class="auth-error"></div>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="register-form" style="display:none">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input class="form-control" type="text" id="reg-name" placeholder="Alex Johnson"/>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input class="form-control" type="email" id="reg-email" placeholder="alex@email.com"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input class="form-control" type="password" id="reg-password" placeholder="Min. 6 characters"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Monthly Income</label>
+          <input class="form-control" type="number" id="reg-income" placeholder="5000"/>
+        </div>
+        <div class="form-group">
+          <label>Currency</label>
+          <select class="form-control" id="reg-currency">
+            <option>USD</option><option>EUR</option><option>GBP</option><option>INR</option><option>JPY</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="doRegister()">Create Account →</button>
+      <div id="register-error" class="auth-error"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">FinTrack <span>Personal Finance</span></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <div class="nav-item active" onclick="showPage('dashboard')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-section-label">Finance</div>
+      <div class="nav-item" onclick="showPage('transactions')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        Transactions
+      </div>
+      <div class="nav-item" onclick="showPage('budget')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/><path d="M12 6v6l4 2"/></svg>
+        Budget
+      </div>
+      <div class="nav-item" onclick="showPage('savings')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 9V7a5 5 0 00-10 0v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2z"/></svg>
+        Savings Goals
+      </div>
+      <div class="nav-item" onclick="showPage('trends')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Trends
+      </div>
+      <div class="nav-section-label">More</div>
+      <div class="nav-item" onclick="showPage('export')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export
+      </div>
+      <div class="nav-item" onclick="showPage('forum')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        Community
+      </div>
+      <div class="nav-item" onclick="showPage('profile')">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Profile
+      </div>
+    </nav>
+    <div class="sidebar-user">
+      <div class="avatar" id="sidebar-avatar">A</div>
+      <div class="user-info">
+        <div class="user-name" id="sidebar-name">Loading…</div>
+        <div class="user-role" id="sidebar-role">User</div>
+      </div>
+      <button class="logout-btn" onclick="doLogout()" title="Sign out">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <h1>Dashboard</h1>
+        <p id="dash-subtitle">Your financial snapshot</p>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card income">
+          <div class="stat-label">Monthly Income</div>
+          <div class="stat-value positive" id="dash-income">—</div>
+          <div class="stat-change">This month</div>
+        </div>
+        <div class="stat-card expense">
+          <div class="stat-label">Monthly Expenses</div>
+          <div class="stat-value negative" id="dash-expense">—</div>
+          <div class="stat-change">This month</div>
+        </div>
+        <div class="stat-card balance">
+          <div class="stat-label">Net Balance</div>
+          <div class="stat-value" id="dash-balance">—</div>
+          <div class="stat-change">Income − Expenses</div>
+        </div>
+        <div class="stat-card savings">
+          <div class="stat-label">Active Goals</div>
+          <div class="stat-value" id="dash-goals" style="color:var(--blue)">—</div>
+          <div class="stat-change">Savings targets</div>
+        </div>
+      </div>
+      <div class="charts-grid">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Spending by Category</span></div>
+          <canvas id="pie-chart"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Income vs Expenses</span></div>
+          <canvas id="bar-chart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Recent Transactions</span>
+          <button class="btn btn-ghost btn-sm" onclick="showPage('transactions')">View All</button>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Type</th><th>Amount</th></tr></thead>
+          <tbody id="dash-transactions"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- TRANSACTIONS -->
+    <div class="page" id="page-transactions">
+      <div class="page-header">
+        <h1>Transactions</h1>
+        <p>Record and manage your income & expenses</p>
+      </div>
+      <div class="filter-bar">
+        <button class="btn btn-accent" onclick="openTxModal()">+ Add Transaction</button>
+        <select class="form-control" id="tx-filter-type" style="width:auto" onchange="filterTransactions()">
+          <option value="">All Types</option>
+          <option value="INCOME">Income</option>
+          <option value="EXPENSE">Expense</option>
+        </select>
+        <select class="form-control" id="tx-filter-cat" style="width:auto" onchange="filterTransactions()">
+          <option value="">All Categories</option>
+        </select>
+        <input class="form-control" type="text" id="tx-search" placeholder="Search…" style="width:180px" oninput="filterTransactions()"/>
+      </div>
+      <div class="card" style="padding:0">
+        <div class="table-wrap"><table>
+          <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Type</th><th>Amount</th><th>Actions</th></tr></thead>
+          <tbody id="tx-table"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- BUDGET -->
+    <div class="page" id="page-budget">
+      <div class="page-header">
+        <h1>Budget</h1>
+        <p>Set monthly spending limits per category</p>
+      </div>
+      <div style="margin-bottom:16px">
+        <button class="btn btn-accent" onclick="openBudgetModal()">+ Add Budget</button>
+      </div>
+      <div id="budget-list"></div>
+    </div>
+
+    <!-- SAVINGS -->
+    <div class="page" id="page-savings">
+      <div class="page-header">
+        <h1>Savings Goals</h1>
+        <p>Track progress toward your financial targets</p>
+      </div>
+      <div style="margin-bottom:16px">
+        <button class="btn btn-accent" onclick="openGoalModal()">+ New Goal</button>
+      </div>
+      <div class="goals-grid" id="goals-grid"></div>
+    </div>
+
+    <!-- TRENDS -->
+    <div class="page" id="page-trends">
+      <div class="page-header">
+        <h1>Financial Trends</h1>
+        <p>Visualize your spending patterns over time</p>
+      </div>
+      <div class="charts-grid">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Monthly Expenses Trend</span></div>
+          <canvas id="trend-expense-chart"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Monthly Income Trend</span></div>
+          <canvas id="trend-income-chart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Category Breakdown (This Month)</span></div>
+        <canvas id="trend-category-chart" style="max-height:300px"></canvas>
+      </div>
+    </div>
+
+    <!-- EXPORT -->
+    <div class="page" id="page-export">
+      <div class="page-header">
+        <h1>Export & Backup</h1>
+        <p>Download your financial data</p>
+      </div>
+      <div class="stats-grid" style="grid-template-columns:1fr 1fr">
+        <div class="card" style="text-align:center;padding:36px">
+          <svg width="48" height="48" fill="none" stroke="var(--red)" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 14px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <div class="card-title" style="margin-bottom:8px">Export as PDF</div>
+          <p style="color:var(--muted);font-size:.88rem;margin-bottom:20px">Full transaction history with formatting</p>
+          <button class="btn btn-accent" onclick="exportData('pdf')">Download PDF</button>
+        </div>
+        <div class="card" style="text-align:center;padding:36px">
+          <svg width="48" height="48" fill="none" stroke="var(--green)" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 14px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <div class="card-title" style="margin-bottom:8px">Export as CSV</div>
+          <p style="color:var(--muted);font-size:.88rem;margin-bottom:20px">Raw data for spreadsheet analysis</p>
+          <button class="btn btn-accent" onclick="exportData('csv')">Download CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FORUM -->
+    <div class="page" id="page-forum">
+      <div class="page-header">
+        <h1>Community Forum</h1>
+        <p>Share tips and learn from others</p>
+      </div>
+      <div style="margin-bottom:16px">
+        <button class="btn btn-accent" onclick="openPostModal()">+ New Post</button>
+      </div>
+      <div id="forum-posts"></div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="page" id="page-profile">
+      <div class="page-header"><h1>Profile</h1><p>Manage your account settings</p></div>
+      <div class="card" style="max-width:500px">
+        <div class="card-title" style="margin-bottom:20px">Account Information</div>
+        <div class="form-group"><label>Full Name</label><input class="form-control" type="text" id="prof-name"/></div>
+        <div class="form-row">
+          <div class="form-group"><label>Monthly Income</label><input class="form-control" type="number" id="prof-income"/></div>
+          <div class="form-group"><label>Target Expenses</label><input class="form-control" type="number" id="prof-target"/></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Savings Target</label><input class="form-control" type="number" id="prof-savings"/></div>
+          <div class="form-group"><label>Currency</label>
+            <select class="form-control" id="prof-currency">
+              <option>USD</option><option>EUR</option><option>GBP</option><option>INR</option><option>JPY</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-accent" onclick="saveProfile()">Save Changes</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODALS -->
+<!-- Transaction Modal -->
+<div class="modal-overlay" id="tx-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="tx-modal-title">Add Transaction</div>
+      <button class="modal-close" onclick="closeModal('tx-modal')">×</button>
+    </div>
+    <input type="hidden" id="tx-edit-id"/>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Type</label>
+        <select class="form-control" id="tx-type">
+          <option value="EXPENSE">Expense</option>
+          <option value="INCOME">Income</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Amount</label>
+        <input class="form-control" type="number" id="tx-amount" step="0.01" placeholder="0.00"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Category</label>
+      <select class="form-control" id="tx-category"></select>
+    </div>
+    <div class="form-group">
+      <label>Date</label>
+      <input class="form-control" type="date" id="tx-date"/>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <input class="form-control" type="text" id="tx-desc" placeholder="What was this for?"/>
+    </div>
+    <div class="form-group">
+      <label>Account</label>
+      <input class="form-control" type="text" id="tx-account" placeholder="Checking, Savings, etc."/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('tx-modal')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveTx()">Save Transaction</button>
+    </div>
+  </div>
+</div>
+
+<!-- Budget Modal -->
+<div class="modal-overlay" id="budget-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add Budget</div>
+      <button class="modal-close" onclick="closeModal('budget-modal')">×</button>
+    </div>
+    <input type="hidden" id="budget-edit-id"/>
+    <div class="form-group"><label>Category</label><select class="form-control" id="budget-category"></select></div>
+    <div class="form-group"><label>Budget Amount</label><input class="form-control" type="number" id="budget-amount" step="0.01" placeholder="0.00"/></div>
+    <div class="form-row">
+      <div class="form-group"><label>Start Date</label><input class="form-control" type="date" id="budget-start"/></div>
+      <div class="form-group"><label>End Date</label><input class="form-control" type="date" id="budget-end"/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('budget-modal')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveBudget()">Save Budget</button>
+    </div>
+  </div>
+</div>
+
+<!-- Goal Modal -->
+<div class="modal-overlay" id="goal-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">New Savings Goal</div>
+      <button class="modal-close" onclick="closeModal('goal-modal')">×</button>
+    </div>
+    <input type="hidden" id="goal-edit-id"/>
+    <div class="form-group"><label>Goal Name</label><input class="form-control" type="text" id="goal-name" placeholder="e.g. Emergency Fund"/></div>
+    <div class="form-row">
+      <div class="form-group"><label>Target Amount</label><input class="form-control" type="number" id="goal-target" step="0.01" placeholder="0.00"/></div>
+      <div class="form-group"><label>Current Amount</label><input class="form-control" type="number" id="goal-current" step="0.01" placeholder="0.00"/></div>
+    </div>
+    <div class="form-group"><label>Deadline</label><input class="form-control" type="date" id="goal-deadline"/></div>
+    <div class="form-group"><label>Description</label><input class="form-control" type="text" id="goal-desc" placeholder="What are you saving for?"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('goal-modal')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveGoal()">Save Goal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Forum Post Modal -->
+<div class="modal-overlay" id="post-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">New Post</div>
+      <button class="modal-close" onclick="closeModal('post-modal')">×</button>
+    </div>
+    <div class="form-group"><label>Title</label><input class="form-control" type="text" id="post-title" placeholder="Share your tip or question…"/></div>
+    <div class="form-group"><label>Content</label><textarea class="form-control" id="post-content" rows="4" style="resize:vertical" placeholder="Write your post here…"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('post-modal')">Cancel</button>
+      <button class="btn btn-accent" onclick="savePost()">Publish Post</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Amount Modal -->
+<div class="modal-overlay" id="add-amount-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add to Goal</div>
+      <button class="modal-close" onclick="closeModal('add-amount-modal')">×</button>
+    </div>
+    <input type="hidden" id="add-amount-goal-id"/>
+    <div class="form-group"><label>Amount to Add</label><input class="form-control" type="number" id="add-amount-value" step="0.01" placeholder="0.00"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('add-amount-modal')">Cancel</button>
+      <button class="btn btn-accent" onclick="submitAddAmount()">Add Amount</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
