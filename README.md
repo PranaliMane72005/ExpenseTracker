@@ -44,16 +44,9 @@ cd finance-tracker
 mvn spring-boot:run
 ```
 
-Open **http://localhost:8080**
 
-### Demo Credentials
 
-| Role | Email | Password |
-|---|---|---|
-| User | demo@finance.com | demo123 |
-| Admin | admin@finance.com | admin123 |
 
----
 
 ## 🗂 Project Structure
 
